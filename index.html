@@ -16,28 +16,28 @@
             color: white; min-height: 100vh; display: flex; align-items: center; justify-content: center;
         }
         .container {
-            width: 90%; max-width: 450px; padding: 30px;
+            width: 95%; max-width: 450px; padding: 25px;
             background: var(--glass); backdrop-filter: blur(20px);
             border: 1px solid rgba(255,255,255,0.1); border-radius: 24px;
             box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+            box-sizing: border-box;
         }
-        h2 { text-align: center; font-weight: 600; letter-spacing: 1px; margin-bottom: 25px; }
+        h2 { text-align: center; font-weight: 600; margin-bottom: 20px; }
         input {
-            width: 100%; padding: 15px; margin-bottom: 20px; border: none;
+            width: 100%; padding: 15px; margin-bottom: 15px; border: none;
             border-radius: 12px; background: rgba(255,255,255,0.1);
             color: white; outline: none; box-sizing: border-box; font-size: 16px;
         }
-        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         button {
             padding: 15px; border: none; border-radius: 12px; font-weight: 600;
-            cursor: pointer; transition: all 0.3s ease; font-family: 'Poppins';
+            cursor: pointer; transition: 0.3s; font-family: 'Poppins';
         }
         .btn-kid { background: var(--secondary); color: white; }
         .btn-parent { background: var(--primary); color: white; }
         .btn-sound { grid-column: span 2; background: #fbbf24; color: #000; margin-top: 10px; }
-        button:active { transform: scale(0.95); }
-        #map { height: 300px; width: 100%; border-radius: 18px; margin-top: 25px; border: 1px solid rgba(255,255,255,0.2); }
-        #status { font-size: 13px; text-align: center; margin-top: 15px; color: #94a3b8; }
+        #map { height: 300px; width: 100%; border-radius: 18px; margin-top: 20px; border: 1px solid rgba(255,255,255,0.2); }
+        #status { font-size: 13px; text-align: center; margin-top: 15px; color: #94a3b8; line-height: 1.5; }
     </style>
 </head>
 <body>
@@ -52,11 +52,11 @@
         <button class="btn-sound" onclick="triggerSound()">🔔 Play Emergency Sound</button>
     </div>
 
-    <div id="status">Status: Waiting for action...</div>
+    <div id="status">Status: Ready. Please enter email.</div>
     <div id="map"></div>
 </div>
 
-<audio id="alertSound" loop>
+<audio id="alertSound" preload="auto" loop>
     <source src="https://www.soundjay.com/buttons/sounds/beep-01a.mp3" type="audio/mpeg">
 </audio>
 
@@ -65,7 +65,6 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-    // --- NEE KUDUTHA CONFIG INGA ADD PANNITEN ---
     const firebaseConfig = {
         apiKey: "AIzaSyDxxf9PEJ0hUupjNeFmmL7YXm31oQrBbJs",
         authDomain: "mobile-tracking-3efc1.firebaseapp.com",
@@ -80,32 +79,34 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // Map Setup (Dark Theme)
     let map = L.map('map').setView([13.08, 80.27], 12);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
     let marker = L.marker([0,0]).addTo(map);
     const audio = document.getElementById('alertSound');
 
     function getID() { 
-        const email = document.getElementById('email').value;
+        const email = document.getElementById('email').value.trim().toLowerCase();
+        if(!email) return null;
         return btoa(email).replace(/=/g, ""); 
     }
 
-    // --- KID MODE: Location Anupurathu ---
+    // KID MODE Logic
     function startKidMode() {
         const id = getID();
-        if(!id) return alert("Email podunga!");
+        if(!id) return alert("Email ID podunga bro!");
         
-        document.getElementById('status').innerText = "📍 Tracking Active... Stay Safe!";
+        document.getElementById('status').innerText = "📍 Tracking Start aagiduchu. GPS Permission 'Allow' pannunga.";
         
-        // Sound Trigger Listener
+        // Listen for sound
         db.ref('tracking/' + id + '/sound_trigger').on('value', (snap) => {
             if(snap.val() === true) {
-                audio.play();
+                audio.play().catch(e => {
+                    document.getElementById('status').innerText = "🔊 Parent sound anupuranga! Screen-ah touch pannunga satham kekkum.";
+                });
                 setTimeout(() => { 
                     audio.pause(); 
                     db.ref('tracking/' + id).update({ sound_trigger: false });
-                }, 6000); // 6 seconds satham kekkum
+                }, 8000);
             }
         });
 
@@ -113,39 +114,51 @@
             navigator.geolocation.watchPosition((pos) => {
                 const lat = pos.coords.latitude;
                 const lng = pos.coords.longitude;
+                
                 db.ref('tracking/' + id).update({
                     lat: lat,
                     lng: lng,
                     lastSeen: new Date().toLocaleTimeString()
+                }).then(() => {
+                    document.getElementById('status').innerText = "📍 Location Updated: " + new Date().toLocaleTimeString();
+                }).catch(err => {
+                    document.getElementById('status').innerText = "❌ Firebase Error: Rules-ah check pannu bro!";
                 });
+
                 marker.setLatLng([lat, lng]);
                 map.setView([lat, lng], 17);
-            }, null, { enableHighAccuracy: true });
+            }, (err) => {
+                alert("GPS Error: " + err.message + ". Please ON GPS and Allow Permission.");
+            }, { enableHighAccuracy: true });
+        } else {
+            alert("Intha phone-la GPS support illa!");
         }
     }
 
-    // --- PARENT MODE: Location Paakurathu ---
+    // PARENT MODE Logic
     function startParentMode() {
         const id = getID();
-        if(!id) return alert("Email podunga!");
+        if(!id) return alert("Email ID podunga!");
 
-        document.getElementById('status').innerText = "🔎 Live Tracking Kid...";
+        document.getElementById('status').innerText = "🔎 Searching for kid...";
         db.ref('tracking/' + id).on('value', (snap) => {
             const data = snap.val();
-            if(data) {
+            if(data && data.lat) {
                 marker.setLatLng([data.lat, data.lng]);
                 map.setView([data.lat, data.lng], 17);
-                document.getElementById('status').innerText = "Last Seen: " + data.lastSeen;
+                document.getElementById('status').innerHTML = "✅ Kid Online<br>Last Seen: " + data.lastSeen;
+            } else {
+                document.getElementById('status').innerText = "⚠️ Kid innum 'Kid Mode' start pannala.";
             }
         });
     }
 
-    // --- SOUND TRIGGER: Satham வரவைக்க ---
+    // TRIGGER SOUND
     function triggerSound() {
         const id = getID();
-        if(!id) return alert("Email podunga!");
+        if(!id) return alert("Email ID podunga!");
         db.ref('tracking/' + id).update({ sound_trigger: true });
-        document.getElementById('status').innerText = "🔊 Command Sent: Playing Alert Sound!";
+        document.getElementById('status').innerText = "🔔 Sound Alert Sent!";
     }
 </script>
 </body>

@@ -1,247 +1,144 @@
 <!DOCTYPE html>
-<html lang="ta">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sri Balaji Earth Movers | Premium Fleet</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Syncopate:wght@400;700&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <title>FamilyGuard Pro | Premium Tracker</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
     <style>
         :root {
-            --gold: #D4AF37;
-            --gold-bright: #FFD700;
-            --dark-black: #050505;
-            --glass: rgba(20, 20, 20, 0.85);
+            --glass: rgba(255, 255, 255, 0.2);
+            --primary: #6366f1;
+            --secondary: #f43f5e;
         }
-
-        body, html {
-            margin: 0; padding: 0;
-            font-family: 'Inter', sans-serif;
-            background-color: var(--dark-black);
-            color: white;
-            overflow-x: hidden;
+        body {
+            margin: 0; font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: white; min-height: 100vh; display: flex; align-items: center; justify-content: center;
         }
-
-        /* Luxury Video/Image Background */
-        .bg-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(135deg, rgba(0,0,0,0.9) 30%, rgba(0,0,0,0.4) 100%),
-                        url('https://images.unsplash.com/photo-1581094288338-2314dddb7ec4?q=80&w=2000&auto=format&fit=crop');
-            background-size: cover;
-            background-position: center;
-            z-index: -1;
+        .container {
+            width: 90%; max-width: 450px; padding: 30px;
+            background: var(--glass); backdrop-filter: blur(15px);
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
         }
-
-        .main-layout {
-            display: flex;
-            min-height: 100vh;
-            align-items: center;
-            justify-content: space-around;
-            padding: 40px;
-            flex-wrap: wrap;
+        h2 { text-align: center; font-weight: 600; letter-spacing: 1px; margin-bottom: 25px; }
+        input {
+            width: 100%; padding: 15px; margin-bottom: 20px; border: none;
+            border-radius: 12px; background: rgba(255,255,255,0.1);
+            color: white; outline: none; box-sizing: border-box;
         }
-
-        /* Left Side: Thoughts & Branding */
-        .brand-side {
-            max-width: 450px;
-            padding: 20px;
+        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        button {
+            padding: 15px; border: none; border-radius: 12px; font-weight: 600;
+            cursor: pointer; transition: all 0.3s ease;
         }
-
-        .brand-side h1 {
-            font-family: 'Syncopate', sans-serif;
-            font-size: 3rem;
-            line-height: 1;
-            margin: 0;
-            color: var(--gold);
-            text-transform: uppercase;
+        .btn-kid { background: var(--secondary); color: white; }
+        .btn-parent { background: var(--primary); color: white; }
+        .btn-sound { 
+            grid-column: span 2; background: #eab308; color: #000; margin-top: 10px;
         }
-
-        .thought-box {
-            margin-top: 40px;
-            border-left: 3px solid var(--gold);
-            padding-left: 20px;
+        button:hover { transform: translateY(-3px); opacity: 0.9; }
+        #map { 
+            height: 300px; width: 100%; border-radius: 18px; 
+            margin-top: 25px; border: 1px solid rgba(255,255,255,0.2); 
         }
-
-        .thought-item {
-            margin-bottom: 25px;
-            opacity: 0.8;
-            transition: 0.3s;
-        }
-
-        .thought-item:hover { opacity: 1; transform: translateX(10px); }
-
-        .thought-item i { color: var(--gold); margin-bottom: 5px; font-size: 1.2rem; }
-        .thought-item p { font-size: 1.1rem; font-style: italic; margin: 5px 0; font-weight: 300; }
-
-        /* Right Side: Luxury Form */
-        .luxury-card {
-            background: var(--glass);
-            backdrop-filter: blur(15px);
-            border: 1px solid rgba(212, 175, 55, 0.3);
-            border-radius: 40px;
-            padding: 50px;
-            width: 100%;
-            max-width: 400px;
-            box-shadow: 0 30px 60px rgba(0,0,0,0.8);
-            position: relative;
-        }
-
-        .luxury-card::before {
-            content: '';
-            position: absolute;
-            top: -2px; left: -2px; right: -2px; bottom: -2px;
-            background: linear-gradient(45deg, transparent, var(--gold), transparent);
-            z-index: -1; border-radius: 40px;
-        }
-
-        .form-title { text-align: center; margin-bottom: 35px; }
-        .form-title h2 { font-family: 'Syncopate', sans-serif; font-size: 1rem; color: var(--gold); letter-spacing: 4px; }
-
-        .field { margin-bottom: 20px; }
-        .field label { font-size: 0.7rem; letter-spacing: 2px; text-transform: uppercase; color: #888; display: block; margin-bottom: 8px; }
-
-        .lux-input {
-            width: 100%;
-            background: rgba(255,255,255,0.03);
-            border: none;
-            border-bottom: 1px solid rgba(212, 175, 55, 0.5);
-            padding: 12px 0;
-            color: white;
-            font-size: 1rem;
-            transition: 0.4s;
-            outline: none;
-        }
-
-        .lux-input:focus { border-bottom: 2px solid var(--gold-bright); background: rgba(212, 175, 55, 0.05); }
-
-        .btn-gold {
-            width: 100%;
-            background: var(--gold);
-            color: black;
-            border: none;
-            padding: 20px;
-            border-radius: 50px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            cursor: pointer;
-            margin-top: 20px;
-            transition: 0.4s;
-            display: flex; justify-content: center; align-items: center; gap: 10px;
-        }
-
-        .btn-gold:hover { background: var(--gold-bright); box-shadow: 0 0 30px rgba(212, 175, 55, 0.4); transform: translateY(-3px); }
-
-        .owner-footer {
-            text-align: center; margin-top: 30px;
-            border-top: 1px solid rgba(255,255,255,0.1);
-            padding-top: 20px;
-        }
-
-        @media (max-width: 850px) {
-            .brand-side { text-align: center; margin-bottom: 50px; }
-            .thought-box { border-left: none; border-top: 2px solid var(--gold); padding-top: 20px; padding-left: 0; }
-        }
+        #status { font-size: 12px; text-align: center; margin-top: 15px; color: #94a3b8; }
     </style>
 </head>
 <body>
 
-    <div class="bg-overlay"></div>
-
-    <div class="main-layout">
-        
-        <div class="brand-side">
-            <h1> SRI BALAJI<br><span style="color:white">EARTH</span><br>MOVERS</h1>
-            
-            <div class="thought-box">
-                <div class="thought-item">
-                    <i class="fas fa-bolt"></i>
-                    <p>"Precision in every move, Power in every lift."</p>
-                </div>
-                <div class="thought-item">
-                    <i class="fas fa-shield-alt"></i>
-                    <p>"Building trust through heavy machinery since 2007
-                        ."</p>
-                </div>
-                <div class="thought-item">
-                    <i class="fas fa-clock"></i>
-                    <p>"Your time is our priority. Rapid service, Annur's pride."</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="luxury-card">
-            <div class="form-title">
-                <h2>BOOK SERVICE</h2>
-            </div>
-
-            <form id="luxForm">
-                <div class="field">
-                    <label>Client Name</label>
-                    <input type="text" id="name" class="lux-input" placeholder="Type your name..." required>
-                </div>
-
-                <div class="field">
-                    <label>Contact Number</label>
-                    <input type="tel" id="phone" class="lux-input" placeholder="+91 XXXX" required>
-                </div>
-
-                <div class="field">
-                    <label>Required Fleet</label>
-                    <select id="fleet" class="lux-input" style="background: #111;">
-                        <option value="Premium JCB">Premium JCB 3DX</option>
-                        <option value="Heavy Tractor">Agriculture Tractor</option>
-                        <option value="Tipper Truck">Heavy Tipper Truck</option>
-                    </select>
-                </div>
-
-                <div class="field">
-                    <label>Work Site Details</label>
-                    <textarea id="work" class="lux-input" rows="2" placeholder="Location and work type..."></textarea>
-                </div>
-
-                <button type="button" class="btn-gold" onclick="sendPremiumRequest()">
-                    <i class="fab fa-whatsapp"></i> CONFIRM BOOKING
-                </button>
-
-                <div class="owner-footer">
-                    <span style="letter-spacing: 2px; font-size: 0.8rem;">DHANDRAJ | PROPRIETOR</span><br>
-                    <span style="color: var(--gold); font-weight: bold;">+91 95002 01960</span>
-                </div>
-            </form>
-        </div>
+<div class="container">
+    <h2>🛡️ FamilyGuard <span style="color:var(--primary)">Pro</span></h2>
+    <input type="email" id="email" placeholder="Enter Premium ID (Email)">
+    
+    <div class="btn-grid">
+        <button class="btn-kid" onclick="startKidMode()">Kid Mode</button>
+        <button class="btn-parent" onclick="startParentMode()">Parent Mode</button>
+        <button class="btn-sound" onclick="triggerSound()">🔔 Play Emergency Sound</button>
     </div>
 
-    <script>
-        function sendPremiumRequest() {
-            const name = document.getElementById('name').value;
-            const phone = document.getElementById('phone').value;
-            const fleet = document.getElementById('fleet').value;
-            const work = document.getElementById('work').value;
+    <div id="status">Ready to Secure</div>
+    <div id="map"></div>
+</div>
 
-            if(!name || !phone) { alert("Please complete the details."); return; }
+<audio id="alertSound" loop>
+    <source src="https://www.soundjay.com/buttons/sounds/beep-01a.mp3" type="audio/mpeg">
+</audio>
 
-            // Get Location
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition((pos) => {
-                    const map = `https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`;
-                    dispatch(map);
-                }, () => dispatch("Location manual"));
-            } else { dispatch("Not supported"); }
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-            function dispatch(loc) {
-                const msg = `*BALAJI EARTH MOVERS - LUXURY BOOKING*%0A` +
-                            `------------------------------------%0A` +
-                            `*CLIENT:* ${name}%0A` +
-                            `*PHONE:* ${phone}%0A` +
-                            `*FLEET:* ${fleet}%0A` +
-                            `*SITE:* ${work}%0A%0A` +
-                            `📍 *SITE LOCATION:*%0A${loc}`;
-                
-                window.open(`https://wa.me/919500201960?text=${msg}`, '_blank');
+<script>
+    // Firebase Config (Replace with your actual keys)
+    const firebaseConfig = {
+        apiKey: "YOUR_API_KEY",
+        databaseURL: "YOUR_DATABASE_URL",
+        projectId: "YOUR_PROJECT_ID",
+        appId: "YOUR_APP_ID"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    let map = L.map('map').setView([13.08, 80.27], 12);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+    let marker = L.marker([0,0]).addTo(map);
+    const audio = document.getElementById('alertSound');
+
+    function getID() { return btoa(document.getElementById('email').value).replace(/=/g, ""); }
+
+    // --- KID MODE ---
+    function startKidMode() {
+        const id = getID();
+        document.getElementById('status').innerText = "📍 Background Tracking Active...";
+        
+        // Listen for Sound Trigger from Parent
+        db.ref('tracking/' + id + '/sound_trigger').on('value', (snap) => {
+            if(snap.val() === true) {
+                audio.play();
+                alert("Emergency Alert from Parent!");
+                // Sound stop panna 5 seconds kazhithu reset pannuvom
+                setTimeout(() => { 
+                    audio.pause(); 
+                    db.ref('tracking/' + id).update({ sound_trigger: false });
+                }, 5000);
             }
+        });
+
+        if (navigator.geolocation) {
+            navigator.geolocation.watchPosition((pos) => {
+                db.ref('tracking/' + id).update({
+                    lat: pos.coords.latitude,
+                    lng: pos.coords.longitude,
+                    lastSeen: new Date().toLocaleTimeString()
+                });
+            }, null, { enableHighAccuracy: true });
         }
-    </script>
+    }
+
+    // --- PARENT MODE ---
+    function startParentMode() {
+        const id = getID();
+        db.ref('tracking/' + id).on('value', (snap) => {
+            const data = snap.val();
+            if(data) {
+                marker.setLatLng([data.lat, data.lng]);
+                map.setView([data.lat, data.lng], 16);
+                document.getElementById('status').innerText = "Last Seen: " + data.lastSeen;
+            }
+        });
+    }
+
+    // --- TRIGGER SOUND ---
+    function triggerSound() {
+        const id = getID();
+        db.ref('tracking/' + id).update({ sound_trigger: true });
+        document.getElementById('status').innerText = "🔊 Command Sent: Playing Sound...";
+    }
+</script>
 </body>
 </html>

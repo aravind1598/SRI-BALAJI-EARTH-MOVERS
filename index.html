@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>FamilyGuard Ultimate</title>
+<title>FamilyGuard Ultra Pro</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -13,7 +13,7 @@
 body{
 margin:0;
 font-family:Poppins;
-background:linear-gradient(135deg,#020617,#1e293b);
+background:linear-gradient(135deg,#020617,#0f172a,#1e293b);
 color:white;
 display:flex;
 justify-content:center;
@@ -26,21 +26,26 @@ max-width:420px;
 padding:20px;
 border-radius:20px;
 background:rgba(255,255,255,0.08);
-backdrop-filter:blur(20px);
+backdrop-filter:blur(25px);
+box-shadow:0 20px 50px rgba(0,0,0,0.6);
 }
+h2{text-align:center;}
 button,input{
 width:100%;
 padding:12px;
 margin:6px 0;
 border:none;
-border-radius:10px;
+border-radius:12px;
+font-weight:600;
 }
-.login{background:#22c55e;color:white;}
-.kid{background:#ef4444;color:white;}
-.parent{background:#6366f1;color:white;}
-.sos{background:red;color:white;}
+.login{background:#22c55e;}
+.kid{background:#ef4444;}
+.parent{background:#6366f1;}
 .sound{background:#fbbf24;color:black;}
-#map{height:260px;margin-top:10px;border-radius:10px;}
+.sos{background:#dc2626;}
+.logout{background:#475569;}
+#map{height:260px;margin-top:10px;border-radius:12px;}
+#status{text-align:center;font-size:13px;margin-top:8px;}
 </style>
 </head>
 
@@ -48,14 +53,16 @@ border-radius:10px;
 
 <div class="container">
 
-<h2>🛡️ FamilyGuard Ultimate</h2>
+<h2>🛡️ FamilyGuard Ultra</h2>
 
 <button class="login" onclick="login()">🔐 Login with Google</button>
+<button class="logout" onclick="logout()">🚪 Logout</button>
+
 <p id="user"></p>
 
 <button class="kid" onclick="startKid()">📱 Start Tracking</button>
 <button class="parent" onclick="startParent()">👨 View Devices</button>
-<button class="sound" onclick="triggerSound()">🔔 Sound</button>
+<button class="sound" onclick="triggerSound()">🔔 Sound Alert</button>
 <button class="sos" onclick="sendSOS()">🚨 SOS</button>
 
 <div id="status">Not logged in</div>
@@ -94,28 +101,44 @@ let interacted = false;
 
 document.body.addEventListener("click",()=>interacted=true);
 
-// 🗺 Map
+// 🗺 MAP
 let map = L.map('map').setView([13.08,80.27],12);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-// 🔐 LOGIN
+// 🔐 LOGIN (FIXED)
 function login(){
 let provider = new firebase.auth.GoogleAuthProvider();
-auth.signInWithPopup(provider).then(res=>{
+
+provider.setCustomParameters({ prompt:'select_account' });
+
+auth.signInWithPopup(provider)
+.then(res=>{
 userID = res.user.uid;
-document.getElementById("user").innerText = res.user.email;
-document.getElementById("status").innerText = "Logged in";
+document.getElementById("user").innerText = "👤 " + res.user.email;
+document.getElementById("status").innerText = "✅ Logged in";
+})
+.catch(err=>{
+console.error(err);
+auth.signInWithRedirect(provider);
 });
 }
 
-// 📱 TRACKING MODE
+// 🔓 LOGOUT
+function logout(){
+auth.signOut();
+userID = null;
+document.getElementById("user").innerText="";
+document.getElementById("status").innerText="Logged out";
+}
+
+// 📱 TRACKING
 function startKid(){
 if(!userID) return alert("Login first!");
 
 // online
 db.ref("secure/"+userID).update({online:true});
 
-// battery loop
+// battery
 setInterval(()=>{
 navigator.getBattery().then(b=>{
 db.ref("secure/"+userID).update({
@@ -163,7 +186,7 @@ db.ref("secure/"+userID).update({online:false});
 });
 }
 
-// 👨 PARENT MODE
+// 👨 VIEW DEVICES
 function startParent(){
 
 db.ref("secure").on("value",snap=>{
@@ -185,7 +208,7 @@ ${d.online?"🟢 Online":"🔴 Offline"}<br>
 ⏰ ${d.time||""}
 `);
 
-// SOS alert
+// SOS ALERT
 if(d.sos){
 alert("🚨 SOS ALERT!");
 db.ref("secure/"+child.key).update({sos:false});

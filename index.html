@@ -1,165 +1,215 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FamilyGuard Pro | Live Tracking</title>
-    
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
-    <style>
-        :root { --glass: rgba(255, 255, 255, 0.15); --primary: #6366f1; --secondary: #f43f5e; }
-        body {
-            margin: 0; font-family: 'Poppins', sans-serif;
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-            color: white; min-height: 100vh; display: flex; align-items: center; justify-content: center;
-        }
-        .container {
-            width: 95%; max-width: 450px; padding: 25px;
-            background: var(--glass); backdrop-filter: blur(20px);
-            border: 1px solid rgba(255,255,255,0.1); border-radius: 24px;
-            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
-            box-sizing: border-box;
-        }
-        h2 { text-align: center; font-weight: 600; margin-bottom: 20px; }
-        input {
-            width: 100%; padding: 15px; margin-bottom: 15px; border: none;
-            border-radius: 12px; background: rgba(255,255,255,0.1);
-            color: white; outline: none; box-sizing: border-box; font-size: 16px;
-        }
-        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        button {
-            padding: 15px; border: none; border-radius: 12px; font-weight: 600;
-            cursor: pointer; transition: 0.3s; font-family: 'Poppins';
-        }
-        .btn-kid { background: var(--secondary); color: white; }
-        .btn-parent { background: var(--primary); color: white; }
-        .btn-sound { grid-column: span 2; background: #fbbf24; color: #000; margin-top: 10px; }
-        #map { height: 300px; width: 100%; border-radius: 18px; margin-top: 20px; border: 1px solid rgba(255,255,255,0.2); }
-        #status { font-size: 13px; text-align: center; margin-top: 15px; color: #94a3b8; line-height: 1.5; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>FamilyGuard Ultimate</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+<style>
+body{
+margin:0;
+font-family:Poppins;
+background:linear-gradient(135deg,#020617,#1e293b);
+color:white;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+}
+.container{
+width:95%;
+max-width:420px;
+padding:20px;
+border-radius:20px;
+background:rgba(255,255,255,0.08);
+backdrop-filter:blur(20px);
+}
+button,input{
+width:100%;
+padding:12px;
+margin:6px 0;
+border:none;
+border-radius:10px;
+}
+.login{background:#22c55e;color:white;}
+.kid{background:#ef4444;color:white;}
+.parent{background:#6366f1;color:white;}
+.sos{background:red;color:white;}
+.sound{background:#fbbf24;color:black;}
+#map{height:260px;margin-top:10px;border-radius:10px;}
+</style>
 </head>
+
 <body>
 
 <div class="container">
-    <h2>🛡️ FamilyGuard <span style="color:var(--primary)">Pro</span></h2>
-    <input type="email" id="email" placeholder="Enter Family Email ID">
-    
-    <div class="btn-grid">
-        <button class="btn-kid" onclick="startKidMode()">Kid Mode</button>
-        <button class="btn-parent" onclick="startParentMode()">Parent Mode</button>
-        <button class="btn-sound" onclick="triggerSound()">🔔 Play Emergency Sound</button>
-    </div>
 
-    <div id="status">Status: Ready. Please enter email.</div>
-    <div id="map"></div>
+<h2>🛡️ FamilyGuard Ultimate</h2>
+
+<button class="login" onclick="login()">🔐 Login with Google</button>
+<p id="user"></p>
+
+<button class="kid" onclick="startKid()">📱 Start Tracking</button>
+<button class="parent" onclick="startParent()">👨 View Devices</button>
+<button class="sound" onclick="triggerSound()">🔔 Sound</button>
+<button class="sos" onclick="sendSOS()">🚨 SOS</button>
+
+<div id="status">Not logged in</div>
+<div id="map"></div>
+
 </div>
 
-<audio id="alertSound" preload="auto" loop>
-    <source src="https://www.soundjay.com/buttons/sounds/beep-01a.mp3" type="audio/mpeg">
+<audio id="audio">
+<source src="https://www.soundjay.com/buttons/sounds/beep-01a.mp3">
 </audio>
 
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
 <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-    const firebaseConfig = {
-        apiKey: "AIzaSyDxxf9PEJ0hUupjNeFmmL7YXm31oQrBbJs",
-        authDomain: "mobile-tracking-3efc1.firebaseapp.com",
-        databaseURL: "https://mobile-tracking-3efc1-default-rtdb.firebaseio.com",
-        projectId: "mobile-tracking-3efc1",
-        storageBucket: "mobile-tracking-3efc1.firebasestorage.app",
-        messagingSenderId: "866207602085",
-        appId: "1:866207602085:web:9c662af32dfd06c275444c",
-        measurementId: "G-MBVQ711KH3"
-    };
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+// 🔥 Firebase config
+const firebaseConfig = {
+apiKey: "AIzaSyDxxf9PEJ0hUupjNeFmmL7YXm31oQrBbJs",
+authDomain: "mobile-tracking-3efc1.firebaseapp.com",
+databaseURL: "https://mobile-tracking-3efc1-default-rtdb.firebaseio.com",
+projectId: "mobile-tracking-3efc1"
+};
 
-    let map = L.map('map').setView([13.08, 80.27], 12);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
-    let marker = L.marker([0,0]).addTo(map);
-    const audio = document.getElementById('alertSound');
+firebase.initializeApp(firebaseConfig);
 
-    function getID() { 
-        const email = document.getElementById('email').value.trim().toLowerCase();
-        if(!email) return null;
-        return btoa(email).replace(/=/g, ""); 
-    }
+const auth = firebase.auth();
+const db = firebase.database();
 
-    // KID MODE Logic
-    function startKidMode() {
-        const id = getID();
-        if(!id) return alert("Email ID podunga bro!");
-        
-        document.getElementById('status').innerText = "📍 Tracking Start aagiduchu. GPS Permission 'Allow' pannunga.";
-        
-        // Listen for sound
-        db.ref('tracking/' + id + '/sound_trigger').on('value', (snap) => {
-            if(snap.val() === true) {
-                audio.play().catch(e => {
-                    document.getElementById('status').innerText = "🔊 Parent sound anupuranga! Screen-ah touch pannunga satham kekkum.";
-                });
-                setTimeout(() => { 
-                    audio.pause(); 
-                    db.ref('tracking/' + id).update({ sound_trigger: false });
-                }, 8000);
-            }
-        });
+let userID = null;
+let marker;
+let audio = document.getElementById("audio");
+let interacted = false;
 
-        if (navigator.geolocation) {
-            navigator.geolocation.watchPosition((pos) => {
-                const lat = pos.coords.latitude;
-                const lng = pos.coords.longitude;
-                
-                db.ref('tracking/' + id).update({
-                    lat: lat,
-                    lng: lng,
-                    lastSeen: new Date().toLocaleTimeString()
-                }).then(() => {
-                    document.getElementById('status').innerText = "📍 Location Updated: " + new Date().toLocaleTimeString();
-                }).catch(err => {
-                    document.getElementById('status').innerText = "❌ Firebase Error: Rules-ah check pannu bro!";
-                });
+document.body.addEventListener("click",()=>interacted=true);
 
-                marker.setLatLng([lat, lng]);
-                map.setView([lat, lng], 17);
-            }, (err) => {
-                alert("GPS Error: " + err.message + ". Please ON GPS and Allow Permission.");
-            }, { enableHighAccuracy: true });
-        } else {
-            alert("Intha phone-la GPS support illa!");
-        }
-    }
+// 🗺 Map
+let map = L.map('map').setView([13.08,80.27],12);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-    // PARENT MODE Logic
-    function startParentMode() {
-        const id = getID();
-        if(!id) return alert("Email ID podunga!");
+// 🔐 LOGIN
+function login(){
+let provider = new firebase.auth.GoogleAuthProvider();
+auth.signInWithPopup(provider).then(res=>{
+userID = res.user.uid;
+document.getElementById("user").innerText = res.user.email;
+document.getElementById("status").innerText = "Logged in";
+});
+}
 
-        document.getElementById('status').innerText = "🔎 Searching for kid...";
-        db.ref('tracking/' + id).on('value', (snap) => {
-            const data = snap.val();
-            if(data && data.lat) {
-                marker.setLatLng([data.lat, data.lng]);
-                map.setView([data.lat, data.lng], 17);
-                document.getElementById('status').innerHTML = "✅ Kid Online<br>Last Seen: " + data.lastSeen;
-            } else {
-                document.getElementById('status').innerText = "⚠️ Kid innum 'Kid Mode' start pannala.";
-            }
-        });
-    }
+// 📱 TRACKING MODE
+function startKid(){
+if(!userID) return alert("Login first!");
 
-    // TRIGGER SOUND
-    function triggerSound() {
-        const id = getID();
-        if(!id) return alert("Email ID podunga!");
-        db.ref('tracking/' + id).update({ sound_trigger: true });
-        document.getElementById('status').innerText = "🔔 Sound Alert Sent!";
-    }
+// online
+db.ref("secure/"+userID).update({online:true});
+
+// battery loop
+setInterval(()=>{
+navigator.getBattery().then(b=>{
+db.ref("secure/"+userID).update({
+battery:Math.round(b.level*100)
+});
+});
+},30000);
+
+// sound receive
+db.ref("secure/"+userID+"/sound").on("value",snap=>{
+if(snap.val()){
+if(interacted){
+audio.currentTime=0;
+audio.play();
+}
+setTimeout(()=>{
+audio.pause();
+db.ref("secure/"+userID).update({sound:false});
+},5000);
+}
+});
+
+// GPS
+navigator.geolocation.watchPosition(pos=>{
+let lat=pos.coords.latitude;
+let lng=pos.coords.longitude;
+
+db.ref("secure/"+userID).update({
+lat,lng,
+time:new Date().toLocaleTimeString()
+});
+
+if(marker) map.removeLayer(marker);
+marker=L.marker([lat,lng]).addTo(map);
+
+map.setView([lat,lng],17);
+
+document.getElementById("status").innerText="📍 Tracking ON";
+
+});
+
+// offline
+window.addEventListener("beforeunload",()=>{
+db.ref("secure/"+userID).update({online:false});
+});
+}
+
+// 👨 PARENT MODE
+function startParent(){
+
+db.ref("secure").on("value",snap=>{
+
+map.eachLayer(l=>{
+if(l instanceof L.Marker) map.removeLayer(l);
+});
+
+snap.forEach(child=>{
+let d = child.val();
+
+if(d.lat){
+let m = L.marker([d.lat,d.lng]).addTo(map);
+
+m.bindPopup(`
+📱 ${child.key}<br>
+🔋 ${d.battery||"?"}%<br>
+${d.online?"🟢 Online":"🔴 Offline"}<br>
+⏰ ${d.time||""}
+`);
+
+// SOS alert
+if(d.sos){
+alert("🚨 SOS ALERT!");
+db.ref("secure/"+child.key).update({sos:false});
+}
+
+}
+});
+
+});
+}
+
+// 🔔 SEND SOUND
+function triggerSound(){
+if(!userID) return;
+db.ref("secure/"+userID).update({sound:true});
+}
+
+// 🚨 SOS
+function sendSOS(){
+if(!userID) return;
+db.ref("secure/"+userID).update({sos:true});
+}
+
 </script>
+
 </body>
 </html>
